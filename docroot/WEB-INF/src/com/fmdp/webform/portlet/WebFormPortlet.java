@@ -47,8 +47,8 @@ import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
-import com.liferay.portal.kernel.zip.ZipWriter;
-import com.liferay.portal.kernel.zip.ZipWriterFactoryUtil;
+//import com.liferay.portal.kernel.zip.ZipWriter;
+//import com.liferay.portal.kernel.zip.ZipWriterFactoryUtil;
 import com.liferay.portal.model.User;
 import com.liferay.portal.security.permission.ActionKeys;
 import com.liferay.portal.service.permission.PortletPermissionUtil;
@@ -202,7 +202,7 @@ public class WebFormPortlet extends MVCPortlet {
 								actionRequest, "validationScriptError", uploadResult);
 						return;
 					}
-					fileAttachment = uploadResult;
+					fileAttachment = uploadDiskDir + File.separator + uploadResult;
 					fieldsMap.put(fieldLabel, uploadResult);
 				} else {
 					fieldsMap.put(fieldLabel, "No attachement");
@@ -341,7 +341,7 @@ public class WebFormPortlet extends MVCPortlet {
 			"databaseTableName", StringPool.BLANK);
 		String title = preferences.getValue("title", "no-title");
 
-		boolean uploadToDisk = GetterUtil.getBoolean(preferences.getValue(
+/*		boolean uploadToDisk = GetterUtil.getBoolean(preferences.getValue(
 				"uploadToDisk", StringPool.BLANK));
 		String uploadDiskDir = GetterUtil.getString(preferences.getValue(
 				"uploadDiskDir", StringPool.BLANK));
@@ -350,11 +350,14 @@ public class WebFormPortlet extends MVCPortlet {
 			uploadToDisk = Validator.isNotNull(uploadDiskDir);
 		}
 
-		StringBundler sb = new StringBundler();
 		boolean hasFiles = false;
 
-		List<String> fieldLabels = new ArrayList<String>();
 		List<Boolean> fieldFiles = new ArrayList<Boolean>();
+
+*/
+		StringBundler sb = new StringBundler();
+
+		List<String> fieldLabels = new ArrayList<String>();
 
 		for (int i = 1; true; i++) {
 			String fieldLabel = preferences.getValue(
@@ -372,13 +375,13 @@ public class WebFormPortlet extends MVCPortlet {
 			sb.append(getCSVFormattedValue(localizedfieldLabel));
 			sb.append(PortletPropsValues.CSV_SEPARATOR);
 
-			String fieldType = preferences.getValue("fieldType" + i, null);
+/*			String fieldType = preferences.getValue("fieldType" + i, null);
 			boolean isFile = "file".equals(fieldType);
 			fieldFiles.add(Boolean.valueOf(isFile));
 			if (isFile) {
 				hasFiles = true;
 			}
-
+*/
 		}
 		fieldLabels.add("email-from");
 		sb.append(getCSVFormattedValue("email-from"));
@@ -389,27 +392,34 @@ public class WebFormPortlet extends MVCPortlet {
 
 		sb.append(CharPool.NEW_LINE);
 
-		ZipWriter zipWriter = null;
+/*		ZipWriter zipWriter = null;
 		if (hasFiles) {
 			zipWriter = ZipWriterFactoryUtil.getZipWriter();
 		}
-
+*/
 		if (Validator.isNotNull(databaseTableName)) {
 			List<ExpandoRow> rows = ExpandoRowLocalServiceUtil.getRows(
 				themeDisplay.getCompanyId(), WebFormUtil.class.getName(),
 				databaseTableName, QueryUtil.ALL_POS, QueryUtil.ALL_POS);
 
 			for (ExpandoRow row : rows) {
-				for (int i = 0; i < fieldLabels.size(); i++) {
+//				for (int i = 0; i < fieldLabels.size(); i++) {
 
-//				for (String fieldName : fieldLabels) {
-					boolean fieldIsFile = fieldFiles.get(i).booleanValue();
+				for (String fieldName : fieldLabels) {
+/*					boolean fieldIsFile = fieldFiles.get(i).booleanValue();
 
 					String data = ExpandoValueLocalServiceUtil.getData(
 						themeDisplay.getCompanyId(),
 						WebFormUtil.class.getName(), databaseTableName,
 						fieldLabels.get(i), row.getClassPK(), StringPool.BLANK);
+*/
+					
+					String data = ExpandoValueLocalServiceUtil.getData(
+							themeDisplay.getCompanyId(),
+							WebFormUtil.class.getName(), databaseTableName,
+							fieldName, row.getClassPK(), StringPool.BLANK);
 
+/*					
 					if (fieldIsFile && Validator.isNotNull(data)) {
 						byte[] bytes = null;
 
@@ -422,7 +432,7 @@ public class WebFormPortlet extends MVCPortlet {
 							zipWriter.addEntry(data, bytes);
 						}
 					}
-
+*/
 					sb.append(getCSVFormattedValue(data));
 					sb.append(PortletPropsValues.CSV_SEPARATOR);
 				}
@@ -432,8 +442,14 @@ public class WebFormPortlet extends MVCPortlet {
 				sb.append(CharPool.NEW_LINE);
 			}
 		}
-		byte[] csvBytes = sb.toString().getBytes(StringPool.UTF8);
 		
+		String fileName = title + ".csv";
+		byte[] bytes = sb.toString().getBytes();
+		String contentType = ContentTypes.APPLICATION_TEXT;
+
+/*		
+		byte[] csvBytes = sb.toString().getBytes(StringPool.UTF8);
+
 		String fileName;
 		byte[] bytes;
 		String contentType;
@@ -449,7 +465,7 @@ public class WebFormPortlet extends MVCPortlet {
 			bytes = csvBytes;
 			contentType = ContentTypes.APPLICATION_TEXT;
 		}
-
+*/
 		
 		PortletResponseUtil.sendFile(
 			resourceRequest, resourceResponse, fileName, bytes, contentType);

@@ -60,11 +60,12 @@ public class ConfigurationActionImpl extends DefaultConfigurationAction {
 
 		validateFields(actionRequest);
 
-//		boolean uploadToDisk = ParamUtil.getBoolean(actionRequest,
-//				"uploadToDisk");
+		boolean uploadToDM = ParamUtil.getBoolean(actionRequest,
+				"uploadToDM");
 //		String uploadDiskDir = ParamUtil.getString(
 //						actionRequest, "uploadDiskDir");
-
+		long newFolderId = ParamUtil.getLong(actionRequest, "newFolderId");
+		
 		if (!SessionErrors.isEmpty(actionRequest)) {
 			return;
 		}
@@ -97,8 +98,9 @@ public class ConfigurationActionImpl extends DefaultConfigurationAction {
 				portletResource);
 
 			preferences.setValue("databaseTableName", databaseTableName);
-
-
+			preferences.setValue("uploadToDM", String.valueOf(uploadToDM));
+			preferences.setValue("newFolderId", String.valueOf(newFolderId));
+			
 			int[] formFieldsIndexes = StringUtil.split(
 				ParamUtil.getString(actionRequest, "formFieldsIndexes"), 0);
 

@@ -38,6 +38,7 @@ String databaseTableName = portletPreferences.getValue("databaseTableName", Stri
 boolean saveToFile = GetterUtil.getBoolean(portletPreferences.getValue("saveToFile", StringPool.BLANK));
 String fileName = portletPreferences.getValue("fileName", StringPool.BLANK);
 
+boolean uploadToDM = GetterUtil.getBoolean(portletPreferences.getValue("uploadToDM",StringPool.BLANK));
 boolean uploadToDisk = GetterUtil.getBoolean(portletPreferences.getValue("uploadToDisk",StringPool.BLANK));
 String uploadDiskDir =portletPreferences.getValue("uploadDiskDir",StringPool.BLANK);
 
@@ -46,6 +47,21 @@ boolean fieldsEditingDisabled = false;
 if (WebFormUtil.getTableRowsCount(company.getCompanyId(), databaseTableName) > 0) {
 	fieldsEditingDisabled = true;
 }
+long newFolderId = GetterUtil.getLong(portletPreferences.getValue("newFolderId",StringPool.BLANK));
+
+String folderName = StringPool.BLANK;
+
+if (newFolderId > 0) {
+	Folder folder = DLAppLocalServiceUtil.getFolder(newFolderId);
+
+	folder = folder.toEscapedModel();
+
+	folderName = folder.getName();
+}
+else {
+	folderName = LanguageUtil.get(pageContext, "home");
+}
+
 %>
 
 <liferay-portlet:actionURL portletConfiguration="true" var="configurationActionURL" />
@@ -77,11 +93,21 @@ if (WebFormUtil.getTableRowsCount(company.getCompanyId(), databaseTableName) > 0
 		<liferay-ui:panel collapsible="<%= true %>" extended="<%= true %>" id="webFormFileUpload" persistState="<%= true %>" title="handling-of-file-upload">
 			<aui:fieldset cssClass="handle-data" label="file-upload">
 				<liferay-ui:error key="pathNameInvalid" message="please-enter-a-valid-path-for-file-upload" />
-
-				<aui:input label="uploadToDisk" type="checkbox" name="preferences--uploadToDisk--" checked="<%= Boolean.TRUE %>" disabled="true"/>
+				<aui:field-wrapper label="file-system">					
+					<aui:input label="uploadToDisk" type="checkbox" name="preferences--uploadToDisk--" checked="<%= uploadToDisk %>" helpMessage="please-use-an-absolute-path-on-server-with-the-right-file-system-permissions"/>
+					<aui:input cssClass="lfr-input-text-container" label="uploadDiskDir" name="preferences--uploadDiskDir--" value="<%= uploadDiskDir %>" />
+				</aui:field-wrapper>
 				
-				<aui:input cssClass="lfr-input-text-container" label="uploadDiskDir" name="preferences--uploadDiskDir--" value="<%= uploadDiskDir %>" />
-			
+				<aui:field-wrapper label="documents-and-media">
+					<aui:input label="uploadToDM" type="checkbox" name="preferences--uploadToDM--" checked="<%= uploadToDM %>" helpMessage="please-use-a-folder-in-documents-and-media-with-the-right-file-system-permissions"/>					
+					<aui:field-wrapper label="select-folder">
+						<div class="input-append">
+							<liferay-ui:input-resource id="folderName" url="<%= folderName %>" />
+							<aui:button name="selectFolderButton" id="selectFolderButton" value="select"/>
+						</div>
+					</aui:field-wrapper>
+					<aui:input name="newFolderId" type="hidden" value="<%= newFolderId %>" />
+				</aui:field-wrapper>
 			</aui:fieldset>
 		</liferay-ui:panel>
 		<liferay-ui:panel collapsible="<%= true %>" extended="<%= true %>" id="webFormData" persistState="<%= true %>" title="handling-of-form-data">
@@ -215,6 +241,48 @@ if (WebFormUtil.getTableRowsCount(company.getCompanyId(), databaseTableName) > 0
 	<aui:button-row>
 		<aui:button type="submit" />
 	</aui:button-row>
+	<liferay-portlet:renderURL portletName="<%= PortletKeys.DOCUMENT_LIBRARY %>" var="selectFolderURL" windowState="<%= LiferayWindowState.POP_UP.toString() %>">
+		<portlet:param name="struts_action" value='<%= "/document_library/select_folder" %>' />
+	</liferay-portlet:renderURL>
+<aui:script use="aui-base">
+	A.one('#<portlet:namespace />selectFolderButton').on(
+		'click',
+		function(event) {
+			var portletURL = Liferay.PortletURL.createURL(themeDisplay.getURLControlPanel());
+
+			portletURL.setParameter('groupId', themeDisplay.getScopeGroupId());
+			portletURL.setParameter('struts_action', '/document_library/select_folder');
+			portletURL.setParameter('folderId', '0');
+
+			portletURL.setPortletId('20');
+
+			portletURL.setWindowState('pop_up');
+			Liferay.Util.selectEntity(
+				{
+					dialog: {
+						constrain: true,
+						modal: true,
+						width: 680
+					},
+					id: '_<%= PortletKeys.DOCUMENT_LIBRARY %>_selectFolder',
+					title: '<liferay-ui:message arguments="folder" key="select-x" />',
+					uri: '<%= selectFolderURL.toString() %>'
+				},
+				function(event) {
+					console.log("ola");
+					var folderData = {
+						idString: 'newFolderId',
+						idValue: event.folderid,
+						nameString: 'folderName',
+						nameValue: event.foldername
+					};
+					Liferay.Util.selectFolder(folderData, '<portlet:namespace />');
+				}
+			);
+		}
+	);
+</aui:script>
+
 </aui:form>
 
 <c:if test="<%= !fieldsEditingDisabled %>">

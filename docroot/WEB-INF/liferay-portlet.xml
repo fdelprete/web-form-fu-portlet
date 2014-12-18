@@ -9,6 +9,7 @@
 		<instanceable>true</instanceable>
 		<header-portlet-css>/css/main.css</header-portlet-css>
 		<css-class-wrapper>web-form-fu-portlet</css-class-wrapper>
+		<add-default-resource>true</add-default-resource>
 	</portlet>
 	<role-mapper>
 		<role-name>administrator</role-name>

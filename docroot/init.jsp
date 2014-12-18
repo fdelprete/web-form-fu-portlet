@@ -42,8 +42,12 @@ page import="com.liferay.portal.security.permission.ActionKeys" %><%@
 page import="com.liferay.portal.util.PortalUtil" %><%@
 page import="com.liferay.portlet.expando.DuplicateColumnNameException" %><%@
 page import="com.fmdp.webform.util.PortletPropsValues" %><%@
-page import="com.fmdp.webform.util.WebFormUtil" %>
-
+page import="com.fmdp.webform.util.WebFormUtil" %><%@
+page import="com.liferay.portal.kernel.repository.model.Folder" %><%@
+page import="com.liferay.portlet.documentlibrary.model.DLFileEntryTypeConstants" %><%@
+page import="com.liferay.portlet.documentlibrary.service.DLAppLocalServiceUtil" %><%@
+page import="com.liferay.portal.kernel.language.LanguageUtil" %><%@
+page import="com.liferay.portal.util.PortletKeys"%>
 <%@ page import="javax.portlet.ActionRequest" %>
 
 <portlet:defineObjects />

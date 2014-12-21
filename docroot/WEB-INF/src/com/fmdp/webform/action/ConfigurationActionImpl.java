@@ -18,10 +18,12 @@ import com.fmdp.webform.util.WebFormUtil;
 import com.liferay.portal.kernel.portlet.DefaultConfigurationAction;
 import com.liferay.portal.kernel.servlet.SessionErrors;
 import com.liferay.portal.kernel.util.Constants;
+//import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.LocalizationUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
+import com.liferay.portal.kernel.util.StringBundler;
 import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
@@ -60,8 +62,8 @@ public class ConfigurationActionImpl extends DefaultConfigurationAction {
 
 		validateFields(actionRequest);
 
-		boolean uploadToDM = ParamUtil.getBoolean(actionRequest,
-				"uploadToDM");
+//		boolean uploadToDM = ParamUtil.getBoolean(actionRequest,
+//				"uploadToDM");
 //		String uploadDiskDir = ParamUtil.getString(
 //						actionRequest, "uploadDiskDir");
 		long newFolderId = ParamUtil.getLong(actionRequest, "newFolderId");
@@ -91,14 +93,19 @@ public class ConfigurationActionImpl extends DefaultConfigurationAction {
 
 		if (updateFields) {
 			int i = 1;
+			boolean uploadToDisk = ParamUtil.getBoolean(actionRequest, "uploadToDisk");
+			boolean uploadToDM = ParamUtil.getBoolean(actionRequest, "uploadToDM");
+			boolean uploadIsWanted = uploadToDisk || uploadToDM;
 			
 			boolean isFileUpload = false;
 			int howManyFileUploadFields = 0;
+
 			String databaseTableName = WebFormUtil.getNewDatabaseTableName(
 				portletResource);
 
 			preferences.setValue("databaseTableName", databaseTableName);
-			preferences.setValue("uploadToDM", String.valueOf(uploadToDM));
+
+//			preferences.setValue("uploadToDM", String.valueOf(uploadToDM));
 			preferences.setValue("newFolderId", String.valueOf(newFolderId));
 			
 			int[] formFieldsIndexes = StringUtil.split(
@@ -161,7 +168,10 @@ public class ConfigurationActionImpl extends DefaultConfigurationAction {
 			}
 
 			preferences.setValue("isFileUpload", String.valueOf(isFileUpload));
-
+			if (!uploadIsWanted && isFileUpload) {
+				SessionErrors.add(
+						actionRequest, "uploadMethodUndefined");				
+			}
 			if (!SessionErrors.isEmpty(actionRequest)) {
 				return;
 			}
@@ -301,18 +311,43 @@ public class ConfigurationActionImpl extends DefaultConfigurationAction {
 
 		if (uploadToDisk) {
 			String uploadDiskDir = getParameter(actionRequest, "uploadDiskDir");
+			boolean pathIsValid = true;
 			try {
-			File checkFolder = null;
-			checkFolder = new File(uploadDiskDir);
-			if(!checkFolder.isDirectory()){
+				File checkFolder = null;
+				checkFolder = new File(uploadDiskDir);
+				if(!checkFolder.isDirectory()){
+					pathIsValid = false;
+					SessionErrors.add(actionRequest, "pathNameInvalid");
+				}
+			} catch (SecurityException se) {
+				pathIsValid = false;
+				SessionErrors.add(actionRequest, "pathNameInvalid");
+			} catch (NullPointerException ne) {
+				pathIsValid = false;
 				SessionErrors.add(actionRequest, "pathNameInvalid");
 			}
-			}
-			catch (SecurityException se) {
-				SessionErrors.add(actionRequest, "pathNameInvalid");
-			}
-			catch (NullPointerException ne) {
-				SessionErrors.add(actionRequest, "pathNameInvalid");
+			if (pathIsValid) {
+				StringBundler tmpFile = new StringBundler(3);
+
+				tmpFile.append(StringUtil.randomString());
+				tmpFile.append(StringPool.PERIOD);
+				tmpFile.append("tmp");
+
+				String tmpFileName = uploadDiskDir + File.separator + tmpFile.toString();
+				// Check if server can create a file as specified
+	
+				try {
+					FileOutputStream fileOutputStream = new FileOutputStream(
+						tmpFileName, true);
+	
+					fileOutputStream.close();
+				}
+				catch (SecurityException se) {
+					SessionErrors.add(actionRequest, "pathNameInvalid");
+				}
+				catch (FileNotFoundException fnfe) {
+					SessionErrors.add(actionRequest, "pathNameInvalid");
+				}
 			}
 		}
 

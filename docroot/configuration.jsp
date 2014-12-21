@@ -90,26 +90,6 @@ else {
 				<aui:input cssClass="lfr-input-text-container" label="redirect-url-on-success" name="preferences--successURL--" value="<%= HtmlUtil.toInputSafe(successURL) %>" />
 			</aui:fieldset>
 		</liferay-ui:panel>
-		<liferay-ui:panel collapsible="<%= true %>" extended="<%= true %>" id="webFormFileUpload" persistState="<%= true %>" title="handling-of-file-upload">
-			<aui:fieldset cssClass="handle-data" label="file-upload">
-				<liferay-ui:error key="pathNameInvalid" message="please-enter-a-valid-path-for-file-upload" />
-				<aui:field-wrapper label="file-system">					
-					<aui:input label="uploadToDisk" type="checkbox" name="preferences--uploadToDisk--" checked="<%= uploadToDisk %>" helpMessage="please-use-an-absolute-path-on-server-with-the-right-file-system-permissions"/>
-					<aui:input cssClass="lfr-input-text-container" label="uploadDiskDir" name="preferences--uploadDiskDir--" value="<%= uploadDiskDir %>" />
-				</aui:field-wrapper>
-				
-				<aui:field-wrapper label="documents-and-media">
-					<aui:input label="uploadToDM" type="checkbox" name="preferences--uploadToDM--" checked="<%= uploadToDM %>" helpMessage="please-use-a-folder-in-documents-and-media-with-the-right-file-system-permissions"/>					
-					<aui:field-wrapper label="select-folder">
-						<div class="input-append">
-							<liferay-ui:input-resource id="folderName" url="<%= folderName %>" />
-							<aui:button name="selectFolderButton" id="selectFolderButton" value="select"/>
-						</div>
-					</aui:field-wrapper>
-					<aui:input name="newFolderId" type="hidden" value="<%= newFolderId %>" />
-				</aui:field-wrapper>
-			</aui:fieldset>
-		</liferay-ui:panel>
 		<liferay-ui:panel collapsible="<%= true %>" extended="<%= true %>" id="webFormData" persistState="<%= true %>" title="handling-of-form-data">
 			<aui:fieldset cssClass="handle-data" label="email">
 				<liferay-ui:error key="emailAddressInvalid" message="please-enter-a-valid-email-address" />
@@ -147,6 +127,33 @@ else {
 				<aui:input name="preferences--saveToFile--" type="checkbox" value="<%= saveToFile %>" />
 
 				<aui:input cssClass="lfr-input-text-container" label="path-and-file-name" name="preferences--fileName--" value="<%= fileName %>" />
+			</aui:fieldset>
+		</liferay-ui:panel>
+
+		<liferay-ui:panel collapsible="<%= true %>" extended="<%= true %>" id="webFormFileUpload" persistState="<%= true %>" title="handling-of-file-upload">
+			<aui:fieldset cssClass="handle-data" label="file-upload">
+				<liferay-ui:error key="uploadMethodUndefined" message="please-define-and-configure-a-file-upload-method" />
+				<liferay-ui:error key="pathNameInvalid" message="please-enter-a-valid-path-for-file-upload" />
+				<c:if test="<%= fieldsEditingDisabled %>">
+					<div class="alert">
+						<liferay-ui:message key="there-is-existing-form-data-please-export-and-delete-it-before-making-changes-to-the-upload-file-method" />
+					</div>
+				</c:if>
+					<aui:field-wrapper label="file-system">					
+						<aui:input label="uploadToDisk" type="checkbox" name="preferences--uploadToDisk--" checked="<%= uploadToDisk %>" helpMessage="please-use-an-absolute-path-on-server-with-the-right-file-system-permissions" disabled="<%= fieldsEditingDisabled %>"/>
+						<aui:input cssClass="lfr-input-text-container" label="uploadDiskDir" name="preferences--uploadDiskDir--" value="<%= uploadDiskDir %>" disabled="<%= fieldsEditingDisabled %>"/>
+					</aui:field-wrapper>
+					
+					<aui:field-wrapper label="documents-and-media">
+						<aui:input label="uploadToDM" type="checkbox" name="preferences--uploadToDM--" checked="<%= uploadToDM %>" helpMessage="please-use-a-folder-in-documents-and-media-with-the-right-file-system-permissions" disabled="<%= fieldsEditingDisabled %>"/>					
+						<aui:field-wrapper label="select-folder">
+							<div class="input-append">
+								<liferay-ui:input-resource id="folderName" url="<%= folderName %>" />
+								<aui:button name="selectFolderButton" id="selectFolderButton" value="select" disabled="<%= fieldsEditingDisabled %>"/>
+							</div>
+						</aui:field-wrapper>
+						<aui:input name="newFolderId" type="hidden" value="<%= newFolderId %>" />
+					</aui:field-wrapper>
 			</aui:fieldset>
 		</liferay-ui:panel>
 

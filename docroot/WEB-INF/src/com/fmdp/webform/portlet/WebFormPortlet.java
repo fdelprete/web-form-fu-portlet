@@ -20,6 +20,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+//import java.io.Serializable;
 
 import com.fmdp.webform.util.PortletPropsValues;
 import com.fmdp.webform.util.WebFormUtil;
@@ -28,10 +30,13 @@ import com.liferay.mail.service.MailServiceUtil;
 import com.liferay.portal.kernel.captcha.CaptchaTextException;
 import com.liferay.portal.kernel.captcha.CaptchaUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.mail.MailMessage;
 import com.liferay.portal.kernel.portlet.PortletResponseUtil;
+import com.liferay.portal.kernel.repository.model.FileEntry;
+import com.liferay.portal.kernel.repository.model.Folder;
 import com.liferay.portal.kernel.servlet.SessionErrors;
 import com.liferay.portal.kernel.servlet.SessionMessages;
 import com.liferay.portal.kernel.upload.UploadPortletRequest;
@@ -41,20 +46,27 @@ import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocalizationUtil;
+import com.liferay.portal.kernel.util.MimeTypesUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.StringBundler;
 import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
+//import com.liferay.portal.kernel.workflow.WorkflowConstants;
 //import com.liferay.portal.kernel.zip.ZipWriter;
 //import com.liferay.portal.kernel.zip.ZipWriterFactoryUtil;
 import com.liferay.portal.model.User;
 import com.liferay.portal.security.permission.ActionKeys;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextFactory;
 import com.liferay.portal.service.permission.PortletPermissionUtil;
 import com.liferay.portal.theme.ThemeDisplay;
 import com.liferay.portal.util.PortalUtil;
 import com.liferay.portlet.PortletPreferencesFactoryUtil;
+//import com.liferay.portlet.documentlibrary.model.DLSyncConstants;
+import com.liferay.portlet.documentlibrary.service.DLAppLocalServiceUtil;
+//import com.liferay.portlet.documentlibrary.service.DLFileEntryLocalServiceUtil;
 import com.liferay.portlet.expando.model.ExpandoRow;
 import com.liferay.portlet.expando.service.ExpandoRowLocalServiceUtil;
 import com.liferay.portlet.expando.service.ExpandoTableLocalServiceUtil;
@@ -62,6 +74,7 @@ import com.liferay.portlet.expando.service.ExpandoValueLocalServiceUtil;
 import com.liferay.util.bridges.mvc.MVCPortlet;
 
 import java.util.ArrayList;
+//import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -118,6 +131,7 @@ public class WebFormPortlet extends MVCPortlet {
 
 		ThemeDisplay themeDisplay = (ThemeDisplay)actionRequest.getAttribute(
 			WebKeys.THEME_DISPLAY);
+        ServiceContext serviceContext = ServiceContextFactory.getInstance(actionRequest);
 
 		String portletId = PortalUtil.getPortletId(actionRequest);
 
@@ -139,6 +153,11 @@ public class WebFormPortlet extends MVCPortlet {
 			preferences.getValue("databaseTableName", StringPool.BLANK));
 		boolean saveToFile = GetterUtil.getBoolean(
 			preferences.getValue("saveToFile", StringPool.BLANK));
+		boolean uploadToDisk = GetterUtil.getBoolean(
+				preferences.getValue("uploadToDisk", StringPool.BLANK));
+		boolean uploadToDM = GetterUtil.getBoolean(
+				preferences.getValue("uploadToDM", StringPool.BLANK));
+		long newFolderId = GetterUtil.getLong(preferences.getValue("newFolderId", StringPool.BLANK));		
 		String fileName = GetterUtil.getString(
 			preferences.getValue("fileName", StringPool.BLANK));
 		String uploadDiskDir = GetterUtil.getString(preferences.getValue(
@@ -191,19 +210,86 @@ public class WebFormPortlet extends MVCPortlet {
 				if(Validator.isNotNull(sourceFileName) && !"".equals(sourceFileName)) {
 					if (uploadRequest.getSize("field" + i) == 0) {
 						SessionErrors.add(
-								actionRequest, "validationScriptError", "UploadCsv-File size is 0");
+								actionRequest, "uploadToDiskError", "Uploaded file size is 0");
+						if (_log.isDebugEnabled()) {
+							_log.debug("Uploaded file size is 0");
+						}
 						return;
-	
 					}
+					List<String> uploadResults = new ArrayList<String>();
+					String uploadResult = "";
+					if(uploadToDisk) {
+						uploadResult = uploadFile(file, sourceFileName, uploadDiskDir);
+						if (uploadResult.equalsIgnoreCase("File Upload Error")) {
+							SessionErrors.add(
+									actionRequest, "uploadToDiskError", uploadResult);
+							return;
+						}
+						fileAttachment = uploadDiskDir + File.separator + uploadResult;
+						uploadResults.add(uploadResult);
+					}
+					if(uploadToDM){
+						uploadResult = "";
+						String contentType = MimeTypesUtil.getContentType(file);
+			            Folder folderName = DLAppLocalServiceUtil.getFolder(newFolderId);
+						if (_log.isDebugEnabled()) {
+							_log.debug("DM Folder: " + folderName.getName());
+						}			            
+			            InputStream inputStream  = new FileInputStream(file);
+			            long repositoryId = folderName.getRepositoryId();
+			            try {
+			            	String selectedFileName = sourceFileName;
+			    			while (true) {
+			    				try {
+			    					DLAppLocalServiceUtil.getFileEntry(
+			    						themeDisplay.getScopeGroupId(), newFolderId,
+			    						selectedFileName);
 
-					String uploadResult = uploadFile(file, sourceFileName, uploadDiskDir);
-					if (uploadResult.equalsIgnoreCase("File Upload Error")) {
-						SessionErrors.add(
-								actionRequest, "validationScriptError", uploadResult);
-						return;
+			    					StringBundler sb = new StringBundler(5);
+
+			    					sb.append(FileUtil.stripExtension(selectedFileName));
+			    					sb.append(StringPool.DASH);
+			    					sb.append(StringUtil.randomString());
+			    					sb.append(StringPool.PERIOD);
+			    					sb.append(FileUtil.getExtension(selectedFileName));
+
+			    					selectedFileName = sb.toString();
+			    				}
+			    				catch (Exception e) {
+			    					break;
+			    				}
+			    			}
+
+			            FileEntry fileEntry = DLAppLocalServiceUtil.addFileEntry(themeDisplay.getUserId(), 
+                                repositoryId, 
+                                newFolderId, 
+                                selectedFileName, //file.getName(), 
+                                contentType, 
+                                selectedFileName, 
+                                "", 
+                                "", 
+                                inputStream, 
+                                file.length(), 
+                                serviceContext);
+						if (_log.isDebugEnabled()) {
+							_log.debug("DM file uploade: " + fileEntry.getTitle());
+						}			            
+			            //Map<String, Serializable> workflowContext = new HashMap<String, Serializable>();
+			            //workflowContext.put("event",DLSyncConstants.EVENT_UPDATE);
+			            //DLFileEntryLocalServiceUtil.updateStatus(themeDisplay.getUserId(), fileEntry.getFileVersion().getFileVersionId(), WorkflowConstants.STATUS_APPROVED, workflowContext, serviceContext);
+			            uploadResult = String.valueOf(fileEntry.getFileEntryId());
+			            uploadResults.add(uploadResult);
+			            } catch (PortalException pe) {
+							SessionErrors.add(
+									actionRequest, "uploadToDmError");
+							_log.error("The upload to DM failed", pe);
+			            	return;
+			            } catch (Exception e) {
+			            	_log.error("The upload to DM failed", e);
+			            	return;
+			            }
 					}
-					fileAttachment = uploadDiskDir + File.separator + uploadResult;
-					fieldsMap.put(fieldLabel, uploadResult);
+					fieldsMap.put(fieldLabel, uploadResults.toString());
 				} else {
 					fieldsMap.put(fieldLabel, "No attachement");
 				}
@@ -728,8 +814,10 @@ public class WebFormPortlet extends MVCPortlet {
 		        filename = newFolder.getAbsoluteFile() + fsep + stripExtension(originalFileName) + "(" + Integer.toString(j) +")." + ext ;
 		        newfile = new File(filename);
 		    }
-			System.out.println("New file name: " + newfile.getName());
-			System.out.println("New file path: " + newfile.getPath());
+			if (_log.isDebugEnabled()) {
+				_log.debug("New file name: " + newfile.getName());
+				_log.debug("New file path: " + newfile.getPath());
+			}
 
 			FileInputStream fis = new FileInputStream(file);
 			FileOutputStream fos = new FileOutputStream(newfile);
@@ -769,6 +857,7 @@ public class WebFormPortlet extends MVCPortlet {
 		}
 
 	}
+
 
 	private String stripExtension (String str) {
 

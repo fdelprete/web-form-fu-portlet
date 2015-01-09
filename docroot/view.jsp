@@ -1,19 +1,3 @@
-<%--
-/**
- * Copyright (c) 2000-present Liferay, Inc. All rights reserved.
- *
- * This library is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation; either version 2.1 of the License, or (at your option)
- * any later version.
- *
- * This library is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
- * details.
- */
---%>
-
 <%@ include file="/init.jsp" %>
 
 <%
@@ -21,6 +5,9 @@ String title = LocalizationUtil.getPreferencesValue(portletPreferences, "title",
 String description = LocalizationUtil.getPreferencesValue(portletPreferences, "description", themeDisplay.getLanguageId());
 boolean requireCaptcha = GetterUtil.getBoolean(portletPreferences.getValue("requireCaptcha", StringPool.BLANK));
 String successURL = portletPreferences.getValue("successURL", StringPool.BLANK);
+boolean saveToDatabase = GetterUtil.getBoolean(portletPreferences.getValue("saveToDatabase", StringPool.BLANK));
+boolean showPreviousPosts = GetterUtil.getBoolean(portletPreferences.getValue("showPreviousPosts", StringPool.BLANK));
+String databaseTableName = portletPreferences.getValue("databaseTableName", StringPool.BLANK);
 %>
 
 <portlet:actionURL var="saveDataURL">
@@ -273,3 +260,77 @@ String successURL = portletPreferences.getValue("successURL", StringPool.BLANK);
 		);
 	}
 </aui:script>
+
+<%
+if (saveToDatabase && themeDisplay.isSignedIn() && showPreviousPosts) {
+	String attrValue =user.getEmailAddress();
+	
+	String attributeName ="email-from";
+	
+	String tableName = databaseTableName;
+	 
+	long classNameId =ClassNameLocalServiceUtil.getClassNameId(WebFormUtil.class);
+	 
+	
+	List<ExpandoValue> expandoValues =ExpandoValueLocalServiceUtil.getColumnValues(company.getCompanyId(), classNameId, tableName, attributeName, attrValue, -1,-1);
+	
+	if (expandoValues.size() > 0) {
+		List<String> columnNames = new ArrayList<String>();
+	//List<ExpandoColumn> expandoColumns = ExpandoColumnLocalServiceUtil.getColumns(company.getCompanyId(), classNameId, tableName);
+	//for (ExpandoColumn column:expandoColumns) {
+	//	String columnName = column.getName();
+	//	columnNames.add(columnName);
+	//}
+	
+%>
+	<table class="table table-bordered table-hover table-striped">
+	<thead class="table-columns">
+	<tr>
+<%
+		int i = 1;
+	
+		String fieldLabel = LocalizationUtil.getPreferencesValue(portletPreferences, "fieldLabel" + i, themeDisplay.getLanguageId());
+	
+		while ((i == 1) || Validator.isNotNull(fieldLabel)) {
+			columnNames.add(fieldLabel);
+			i++;
+	
+%>
+			<th><%= fieldLabel%></th>
+<%
+			fieldLabel = portletPreferences.getValue("fieldLabel" + i, "");
+		}
+%>
+		</tr>
+		</thead>
+		<tbody class="table-data">
+<%
+		String valore ="";
+		for(ExpandoValue expandoValue:expandoValues) {
+	 
+	    	long formId = expandoValue.getClassPK();
+	      	Map<String,Serializable> dati = ExpandoValueLocalServiceUtil.getData(company.getCompanyId(), WebFormUtil.class.getName(), tableName, columnNames, formId);
+%>
+	 
+			<tr>
+	
+<%
+			for(String columnName:columnNames) {
+				valore = MapUtil.getString(dati, columnName);
+%>
+				<td  class="table-cell"><%= valore%></td>
+<%
+			} // for(String
+	
+%>
+			</tr>
+<% 
+		} // for(Expando
+%>
+		</tbody>
+	</table>
+	
+<% 
+	} // if (expandoValues.size() > 0)
+}// if (saveToDatabase)
+%>

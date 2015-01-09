@@ -104,8 +104,8 @@ public class ConfigurationActionImpl extends DefaultConfigurationAction {
 				portletResource);
 
 			preferences.setValue("databaseTableName", databaseTableName);
-
-//			preferences.setValue("uploadToDM", String.valueOf(uploadToDM));
+			preferences.setValue("uploadToDisk", String.valueOf(uploadToDisk));
+			preferences.setValue("uploadToDM", String.valueOf(uploadToDM));
 			preferences.setValue("newFolderId", String.valueOf(newFolderId));
 			
 			int[] formFieldsIndexes = StringUtil.split(
@@ -272,6 +272,9 @@ public class ConfigurationActionImpl extends DefaultConfigurationAction {
 		boolean saveToDatabase = GetterUtil.getBoolean(
 			getParameter(actionRequest, "saveToDatabase"));
 
+		boolean showPreviousPosts = GetterUtil.getBoolean(
+				getParameter(actionRequest, "showPreviousPosts"));
+		
 		boolean saveToFile = GetterUtil.getBoolean(
 			getParameter(actionRequest, "saveToFile"));
 		
@@ -391,6 +394,9 @@ public class ConfigurationActionImpl extends DefaultConfigurationAction {
 			}
 		}
 
+		if (!saveToDatabase && showPreviousPosts) {
+			SessionErrors.add(actionRequest, "noPreviousPosts");
+		}
 		if (!validateUniqueFieldNames(actionRequest)) {
 			SessionErrors.add(
 				actionRequest, DuplicateColumnNameException.class.getName());

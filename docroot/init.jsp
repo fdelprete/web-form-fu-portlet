@@ -24,11 +24,17 @@
 <%@ taglib uri="http://liferay.com/tld/ui" prefix="liferay-ui" %>
 <%@ taglib uri="http://liferay.com/tld/util" prefix="liferay-util" %>
 
+<%@ page import="java.util.List" %>
+<%@ page import="java.util.ArrayList" %>
+<%@ page import="java.util.Map" %>
+<%@ page import="java.io.Serializable" %>
 <%@ page import="com.liferay.portal.kernel.captcha.CaptchaMaxChallengesException" %><%@
 page import="com.liferay.portal.kernel.captcha.CaptchaTextException" %><%@
 page import="com.liferay.portal.kernel.portlet.LiferayWindowState" %><%@
 page import="com.liferay.portal.kernel.servlet.SessionErrors" %><%@
 page import="com.liferay.portal.kernel.util.ArrayUtil" %><%@
+page import="com.liferay.portal.kernel.util.MapUtil" %><%@
+page import="com.liferay.portal.kernel.util.ListUtil" %><%@
 page import="com.liferay.portal.kernel.util.Constants" %><%@
 page import="com.liferay.portal.kernel.util.GetterUtil" %><%@
 page import="com.liferay.portal.kernel.util.HtmlUtil" %><%@
@@ -47,6 +53,11 @@ page import="com.liferay.portal.kernel.repository.model.Folder" %><%@
 page import="com.liferay.portlet.documentlibrary.model.DLFileEntryTypeConstants" %><%@
 page import="com.liferay.portlet.documentlibrary.service.DLAppLocalServiceUtil" %><%@
 page import="com.liferay.portal.kernel.language.LanguageUtil" %><%@
+page import="com.liferay.portal.service.ClassNameLocalServiceUtil" %><%@ 
+page import="com.liferay.portlet.expando.service.ExpandoValueLocalServiceUtil" %><%@ 
+page import="com.liferay.portlet.expando.service.ExpandoColumnLocalServiceUtil" %><%@ 
+page import="com.liferay.portlet.expando.model.ExpandoValue" %><%@ 
+page import="com.liferay.portlet.expando.model.ExpandoColumn" %><%@
 page import="com.liferay.portal.util.PortletKeys"%>
 <%@ page import="javax.portlet.ActionRequest" %>
 

@@ -1,19 +1,3 @@
-<%--
-/**
- * Copyright (c) 2000-present Liferay, Inc. All rights reserved.
- *
- * This library is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation; either version 2.1 of the License, or (at your option)
- * any later version.
- *
- * This library is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
- * details.
- */
---%>
-
 <%@ include file="/init.jsp" %>
 
 <%
@@ -33,6 +17,8 @@ String thanksBody = portletPreferences.getValue("thanksBody", StringPool.BLANK);
 
 
 boolean saveToDatabase = GetterUtil.getBoolean(portletPreferences.getValue("saveToDatabase", StringPool.BLANK));
+boolean showPreviousPosts = GetterUtil.getBoolean(portletPreferences.getValue("showPreviousPosts", StringPool.BLANK));
+
 String databaseTableName = portletPreferences.getValue("databaseTableName", StringPool.BLANK);
 
 boolean saveToFile = GetterUtil.getBoolean(portletPreferences.getValue("saveToFile", StringPool.BLANK));
@@ -120,7 +106,13 @@ else {
 			</aui:fieldset>
 
 			<aui:fieldset cssClass="handle-data" label="database">
-				<aui:input name="preferences--saveToDatabase--" type="checkbox" value="<%= saveToDatabase %>" />
+				<liferay-ui:error key="noPreviousPosts" message="previous-posts-cannot-be-displayed" />
+				<aui:input name="preferences--saveToDatabase--" type="checkbox" 
+					value="<%= saveToDatabase %>" 
+					helpMessage="if-this-is-checked-then-the-signedin-users-can-view-the-table-of-previous-posts"/>
+				<aui:input label="show-previous-post" name="preferences--showPreviousPosts--" type="checkbox" 
+					value="<%= showPreviousPosts %>" />
+
 			</aui:fieldset>
 
 			<aui:fieldset cssClass="handle-data" label="file">
@@ -140,12 +132,12 @@ else {
 					</div>
 				</c:if>
 					<aui:field-wrapper label="file-system">					
-						<aui:input label="uploadToDisk" type="checkbox" name="preferences--uploadToDisk--" checked="<%= uploadToDisk %>" helpMessage="please-use-an-absolute-path-on-server-with-the-right-file-system-permissions" disabled="<%= fieldsEditingDisabled %>"/>
+						<aui:input label="uploadToDisk" type="checkbox" name="uploadToDisk" checked="<%= uploadToDisk %>" helpMessage="please-use-an-absolute-path-on-server-with-the-right-file-system-permissions" disabled="<%= fieldsEditingDisabled %>"/>
 						<aui:input cssClass="lfr-input-text-container" label="uploadDiskDir" name="preferences--uploadDiskDir--" value="<%= uploadDiskDir %>" disabled="<%= fieldsEditingDisabled %>"/>
 					</aui:field-wrapper>
 					
 					<aui:field-wrapper label="documents-and-media">
-						<aui:input label="uploadToDM" type="checkbox" name="preferences--uploadToDM--" checked="<%= uploadToDM %>" helpMessage="please-use-a-folder-in-documents-and-media-with-the-right-file-system-permissions" disabled="<%= fieldsEditingDisabled %>"/>					
+						<aui:input label="uploadToDM" type="checkbox" name="uploadToDM" checked="<%= uploadToDM %>" helpMessage="please-use-a-folder-in-documents-and-media-with-the-right-file-system-permissions" disabled="<%= fieldsEditingDisabled %>"/>					
 						<aui:field-wrapper label="select-folder">
 							<div class="input-append">
 								<liferay-ui:input-resource id="folderName" url="<%= folderName %>" />

@@ -303,7 +303,7 @@ public class ConfigurationActionImpl extends DefaultConfigurationAction {
 			}
 			if (sendThanksEmail) {
 				if (Validator.isNull(thanksSubject)) {
-					SessionErrors.add(actionRequest, "thanlsSubjectRequired");
+					SessionErrors.add(actionRequest, "thanksSubjectRequired");
 				}
 			}
 

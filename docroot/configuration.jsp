@@ -83,7 +83,7 @@ else {
 				<liferay-ui:error key="fileNameInvalid" message="please-enter-a-valid-path-and-file-name" />
 				<liferay-ui:error key="handlingRequired" message="please-select-an-action-for-the-handling-of-form-data" />
 				<liferay-ui:error key="subjectRequired" message="please-enter-a-subject" />
-				<liferay-ui:error key="tahnksSubjectRequired" message="please-enter-a-thnaks-subject" />
+				<liferay-ui:error key="thanksSubjectRequired" message="please-enter-a-thanks-subject" />
 
 				<aui:input label="send-as-email" name="preferences--sendAsEmail--" type="checkbox" value="<%= sendAsEmail %>" />
 

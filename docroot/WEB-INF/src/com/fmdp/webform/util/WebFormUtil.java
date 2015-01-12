@@ -15,10 +15,13 @@
 package com.fmdp.webform.util;
 
 import com.liferay.counter.service.CounterLocalServiceUtil;
+import com.liferay.mail.service.MailServiceUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.mail.MailMessage;
+import com.liferay.portal.kernel.util.CharPool;
 import com.liferay.portal.kernel.util.HtmlUtil;
 import com.liferay.portal.kernel.util.StringBundler;
 import com.liferay.portal.kernel.util.StringPool;
@@ -33,13 +36,14 @@ import com.liferay.portlet.expando.service.ExpandoRowLocalServiceUtil;
 import com.liferay.portlet.expando.service.ExpandoTableLocalServiceUtil;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.mail.internet.InternetAddress;
 import javax.portlet.PortletPreferences;
 
 import org.mozilla.javascript.Context;
@@ -269,6 +273,105 @@ public class WebFormUtil {
 		return validationResult;
 	}
 
+	public static boolean sendThanksEmail(
+			long companyId, Map<String, String> fieldsMap,
+			PortletPreferences preferences, String userEmail) {
+
+			try {
+				String emailAddresses = userEmail;
+
+				if (Validator.isNull(emailAddresses)) {
+					_log.error(
+						"The web form thanks email cannot be sent because no email " +
+							"address is configured for the current user");
+
+					return false;
+				}
+
+				InternetAddress fromAddress = new InternetAddress(
+					getEmailFromAddress(preferences, companyId),
+					getEmailFromName(preferences, companyId));
+				String subject = preferences.getValue("thanks-subject", StringPool.BLANK);
+				String preBody = preferences.getValue("thanks-body", StringPool.BLANK);
+				String body = preBody + CharPool.NEW_LINE + CharPool.NEW_LINE + getMailBody(fieldsMap);
+				MailMessage mailMessage = new MailMessage(
+					fromAddress, subject, body, false);
+
+				InternetAddress[] toAddresses = InternetAddress.parse(
+					emailAddresses);
+
+				mailMessage.setTo(toAddresses);
+
+				MailServiceUtil.sendEmail(mailMessage);
+
+				return true;
+			}
+			catch (Exception e) {
+				_log.error("The web form thanks email could not be sent", e);
+
+				return false;
+			}
+		}
+	public static boolean sendEmail(
+			long companyId, Map<String, String> fieldsMap,
+			PortletPreferences preferences, String fileAttachment) {
+
+			try {
+				String emailAddresses = preferences.getValue(
+					"emailAddress", StringPool.BLANK);
+
+				if (Validator.isNull(emailAddresses)) {
+					_log.error(
+						"The web form email cannot be sent because no email " +
+							"address is configured");
+
+					return false;
+				}
+
+				InternetAddress fromAddress = new InternetAddress(
+					getEmailFromAddress(preferences, companyId),
+					getEmailFromName(preferences, companyId));
+				String subject = preferences.getValue("subject", StringPool.BLANK);
+				String body = getMailBody(fieldsMap);
+
+				MailMessage mailMessage = new MailMessage(
+						fromAddress, subject, body, false);				
+
+				if (!"".equals(fileAttachment)) {
+					File fAtt = new File(fileAttachment);
+					mailMessage.addFileAttachment(fAtt);
+				}
+
+				InternetAddress[] toAddresses = InternetAddress.parse(
+					emailAddresses);
+
+				mailMessage.setTo(toAddresses);
+
+				MailServiceUtil.sendEmail(mailMessage);
+
+				return true;
+			}
+			catch (Exception e) {
+				_log.error("The web form email could not be sent", e);
+
+				return false;
+			}
+		}
+
+	protected static String getMailBody(Map<String, String> fieldsMap) {
+		StringBundler sb = new StringBundler();
+
+		for (String fieldLabel : fieldsMap.keySet()) {
+			String fieldValue = fieldsMap.get(fieldLabel);
+
+			sb.append(fieldLabel);
+			sb.append(" : ");
+			sb.append(fieldValue);
+			sb.append(CharPool.NEW_LINE);
+		}
+
+		return sb.toString();
+	}
 	private static Log _log = LogFactoryUtil.getLog(WebFormUtil.class);
 
 }

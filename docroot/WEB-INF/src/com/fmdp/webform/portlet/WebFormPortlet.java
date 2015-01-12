@@ -330,12 +330,12 @@ public class WebFormPortlet extends MVCPortlet {
 			boolean emailThanksSuccess = true;
 
 			if (sendAsEmail) {
-				emailSuccess = sendEmail(
+				emailSuccess = WebFormUtil.sendEmail(
 					themeDisplay.getCompanyId(), fieldsMap, preferences, fileAttachment);
 			}
 
 			if (sendThanksEmail && !Validator.isNull(currentUser)) {
-				emailThanksSuccess = sendThanksEmail(
+				emailThanksSuccess = WebFormUtil.sendThanksEmail(
 					themeDisplay.getCompanyId(), fieldsMap, preferences, userEmail);
 			}
 
@@ -637,92 +637,6 @@ public class WebFormPortlet extends MVCPortlet {
 			return false;
 		}
 	}
-
-	protected boolean sendEmail(
-		long companyId, Map<String, String> fieldsMap,
-		PortletPreferences preferences, String fileAttachment) {
-
-		try {
-			String emailAddresses = preferences.getValue(
-				"emailAddress", StringPool.BLANK);
-
-			if (Validator.isNull(emailAddresses)) {
-				_log.error(
-					"The web form email cannot be sent because no email " +
-						"address is configured");
-
-				return false;
-			}
-
-			InternetAddress fromAddress = new InternetAddress(
-				WebFormUtil.getEmailFromAddress(preferences, companyId),
-				WebFormUtil.getEmailFromName(preferences, companyId));
-			String subject = preferences.getValue("subject", StringPool.BLANK);
-			String body = getMailBody(fieldsMap);
-
-			MailMessage mailMessage = new MailMessage(
-					fromAddress, subject, body, false);				
-
-			if (!"".equals(fileAttachment)) {
-				File fAtt = new File(fileAttachment);
-				mailMessage.addFileAttachment(fAtt);
-			}
-
-			InternetAddress[] toAddresses = InternetAddress.parse(
-				emailAddresses);
-
-			mailMessage.setTo(toAddresses);
-
-			MailServiceUtil.sendEmail(mailMessage);
-
-			return true;
-		}
-		catch (Exception e) {
-			_log.error("The web form email could not be sent", e);
-
-			return false;
-		}
-	}
-
-	protected boolean sendThanksEmail(
-			long companyId, Map<String, String> fieldsMap,
-			PortletPreferences preferences, String userEmail) {
-
-			try {
-				String emailAddresses = userEmail;
-
-				if (Validator.isNull(emailAddresses)) {
-					_log.error(
-						"The web form thanks email cannot be sent because no email " +
-							"address is configured for the current user");
-
-					return false;
-				}
-
-				InternetAddress fromAddress = new InternetAddress(
-					WebFormUtil.getEmailFromAddress(preferences, companyId),
-					WebFormUtil.getEmailFromName(preferences, companyId));
-				String subject = preferences.getValue("thanks-subject", StringPool.BLANK);
-				String preBody = preferences.getValue("thanks-body", StringPool.BLANK);
-				String body = preBody + CharPool.NEW_LINE + CharPool.NEW_LINE + getMailBody(fieldsMap);
-				MailMessage mailMessage = new MailMessage(
-					fromAddress, subject, body, false);
-
-				InternetAddress[] toAddresses = InternetAddress.parse(
-					emailAddresses);
-
-				mailMessage.setTo(toAddresses);
-
-				MailServiceUtil.sendEmail(mailMessage);
-
-				return true;
-			}
-			catch (Exception e) {
-				_log.error("The web form thanks email could not be sent", e);
-
-				return false;
-			}
-		}
 
 	protected void serveCaptcha(
 			ResourceRequest resourceRequest, ResourceResponse resourceResponse)

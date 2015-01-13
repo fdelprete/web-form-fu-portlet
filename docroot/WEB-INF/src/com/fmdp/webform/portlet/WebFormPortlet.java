@@ -23,6 +23,12 @@ import java.io.IOException;
 import java.io.InputStream;
 //import java.io.Serializable;
 
+
+
+
+
+
+
 import com.fmdp.webform.util.PortletPropsValues;
 import com.fmdp.webform.util.WebFormUtil;
 import com.liferay.counter.service.CounterLocalServiceUtil;
@@ -31,6 +37,8 @@ import com.liferay.portal.kernel.captcha.CaptchaTextException;
 import com.liferay.portal.kernel.captcha.CaptchaUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
+import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.mail.MailMessage;
@@ -73,13 +81,17 @@ import com.liferay.portlet.expando.service.ExpandoTableLocalServiceUtil;
 import com.liferay.portlet.expando.service.ExpandoValueLocalServiceUtil;
 import com.liferay.util.bridges.mvc.MVCPortlet;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 //import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 
 import javax.mail.internet.InternetAddress;
 import javax.portlet.ActionRequest;
@@ -206,8 +218,10 @@ public class WebFormPortlet extends MVCPortlet {
 				if (_log.isDebugEnabled()) {
 					_log.debug("File attachment: " + sourceFileName);
 				}
+				JSONObject jsonObject = JSONFactoryUtil.createJSONObject();
 
 				if(Validator.isNotNull(sourceFileName) && !"".equals(sourceFileName)) {
+					
 					if (uploadRequest.getSize("field" + i) == 0) {
 						SessionErrors.add(
 								actionRequest, "uploadToDiskError", "Uploaded file size is 0");
@@ -216,7 +230,7 @@ public class WebFormPortlet extends MVCPortlet {
 						}
 						return;
 					}
-					List<String> uploadResults = new ArrayList<String>();
+//					List<String> uploadResults = new ArrayList<String>();
 					String uploadResult = "";
 					if(uploadToDisk) {
 						uploadResult = uploadFile(file, sourceFileName, uploadDiskDir);
@@ -226,7 +240,9 @@ public class WebFormPortlet extends MVCPortlet {
 							return;
 						}
 						fileAttachment = uploadDiskDir + File.separator + uploadResult;
-						uploadResults.add(uploadResult);
+						//uploadResults.add(uploadResult);
+						jsonObject.put("fsOriginalName", sourceFileName);
+						jsonObject.put("fsName", uploadResult);
 					}
 					if(uploadToDM){
 						uploadResult = "";
@@ -278,7 +294,12 @@ public class WebFormPortlet extends MVCPortlet {
 			            //workflowContext.put("event",DLSyncConstants.EVENT_UPDATE);
 			            //DLFileEntryLocalServiceUtil.updateStatus(themeDisplay.getUserId(), fileEntry.getFileVersion().getFileVersionId(), WorkflowConstants.STATUS_APPROVED, workflowContext, serviceContext);
 			            uploadResult = String.valueOf(fileEntry.getFileEntryId());
-			            uploadResults.add(uploadResult);
+			            //uploadResults.add(uploadResult);
+			            String docUrl = themeDisplay.getPortalURL()+"/c/document_library/get_file?uuid="+fileEntry.getUuid()+"&groupId="+themeDisplay.getScopeGroupId();
+			            jsonObject.put("fe", uploadResult);
+			            jsonObject.put("feOriginalName", sourceFileName);
+			            jsonObject.put("feName", fileEntry.getTitle());
+			            jsonObject.put("feUrl", docUrl);
 			            } catch (PortalException pe) {
 							SessionErrors.add(
 									actionRequest, "uploadToDmError");
@@ -289,10 +310,11 @@ public class WebFormPortlet extends MVCPortlet {
 			            	return;
 			            }
 					}
-					fieldsMap.put(fieldLabel, uploadResults.toString());
+					jsonObject.put("Status", "With Attachment");
 				} else {
-					fieldsMap.put(fieldLabel, "No attachement");
+					jsonObject.put("Status", "No Attachment");
 				}
+				fieldsMap.put(fieldLabel, jsonObject.toString());				
 			} else {
 				fieldsMap.put(fieldLabel, uploadRequest.getParameter("field" + i));
 			}
@@ -322,7 +344,12 @@ public class WebFormPortlet extends MVCPortlet {
 		} else {
 			fieldsMap.put("email-from", "guest");
 		}
-
+	
+		DateFormat df = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+		df.setTimeZone(TimeZone.getTimeZone(themeDisplay.getTimeZone().getID()));
+		Date dateobj = new Date();
+		fieldsMap.put("email-sent-on", df.format(dateobj));
+		
 		if (validationErrors.isEmpty()) {
 			boolean emailSuccess = true;
 			boolean databaseSuccess = true;
@@ -427,20 +454,6 @@ public class WebFormPortlet extends MVCPortlet {
 			"databaseTableName", StringPool.BLANK);
 		String title = preferences.getValue("title", "no-title");
 
-/*		boolean uploadToDisk = GetterUtil.getBoolean(preferences.getValue(
-				"uploadToDisk", StringPool.BLANK));
-		String uploadDiskDir = GetterUtil.getString(preferences.getValue(
-				"uploadDiskDir", StringPool.BLANK));
-
-		if (uploadToDisk) {
-			uploadToDisk = Validator.isNotNull(uploadDiskDir);
-		}
-
-		boolean hasFiles = false;
-
-		List<Boolean> fieldFiles = new ArrayList<Boolean>();
-
-*/
 		StringBundler sb = new StringBundler();
 
 		List<String> fieldLabels = new ArrayList<String>();
@@ -461,64 +474,33 @@ public class WebFormPortlet extends MVCPortlet {
 			sb.append(getCSVFormattedValue(localizedfieldLabel));
 			sb.append(PortletPropsValues.CSV_SEPARATOR);
 
-/*			String fieldType = preferences.getValue("fieldType" + i, null);
-			boolean isFile = "file".equals(fieldType);
-			fieldFiles.add(Boolean.valueOf(isFile));
-			if (isFile) {
-				hasFiles = true;
-			}
-*/
 		}
 		fieldLabels.add("email-from");
 		sb.append(getCSVFormattedValue("email-from"));
 		sb.append(PortletPropsValues.CSV_SEPARATOR);
-		
+
+		fieldLabels.add("email-sent-on");
+		sb.append(getCSVFormattedValue("email-sent-on"));
+		sb.append(PortletPropsValues.CSV_SEPARATOR);
 
 		sb.setIndex(sb.index() - 1);
 
 		sb.append(CharPool.NEW_LINE);
 
-/*		ZipWriter zipWriter = null;
-		if (hasFiles) {
-			zipWriter = ZipWriterFactoryUtil.getZipWriter();
-		}
-*/
 		if (Validator.isNotNull(databaseTableName)) {
 			List<ExpandoRow> rows = ExpandoRowLocalServiceUtil.getRows(
 				themeDisplay.getCompanyId(), WebFormUtil.class.getName(),
 				databaseTableName, QueryUtil.ALL_POS, QueryUtil.ALL_POS);
 
 			for (ExpandoRow row : rows) {
-//				for (int i = 0; i < fieldLabels.size(); i++) {
 
 				for (String fieldName : fieldLabels) {
-/*					boolean fieldIsFile = fieldFiles.get(i).booleanValue();
-
-					String data = ExpandoValueLocalServiceUtil.getData(
-						themeDisplay.getCompanyId(),
-						WebFormUtil.class.getName(), databaseTableName,
-						fieldLabels.get(i), row.getClassPK(), StringPool.BLANK);
-*/
 					
 					String data = ExpandoValueLocalServiceUtil.getData(
 							themeDisplay.getCompanyId(),
 							WebFormUtil.class.getName(), databaseTableName,
 							fieldName, row.getClassPK(), StringPool.BLANK);
 
-/*					
-					if (fieldIsFile && Validator.isNotNull(data)) {
-						byte[] bytes = null;
-
-						if (bytes == null && uploadToDisk) {
-							bytes = FileUtil.getBytes(new File(uploadDiskDir
-									+ File.separator + data));
-						}
-
-						if (bytes != null) {
-							zipWriter.addEntry(data, bytes);
-						}
-					}
-*/
 					sb.append(getCSVFormattedValue(data));
 					sb.append(PortletPropsValues.CSV_SEPARATOR);
 				}
@@ -532,26 +514,6 @@ public class WebFormPortlet extends MVCPortlet {
 		String fileName = title + ".csv";
 		byte[] bytes = sb.toString().getBytes();
 		String contentType = ContentTypes.APPLICATION_TEXT;
-
-/*		
-		byte[] csvBytes = sb.toString().getBytes(StringPool.UTF8);
-
-		String fileName;
-		byte[] bytes;
-		String contentType;
-
-		if (hasFiles) {
-			zipWriter.addEntry("submissions.csv", csvBytes);
-
-			fileName = title + ".zip";
-			bytes = zipWriter.finish();
-			contentType = ContentTypes.APPLICATION_ZIP;
-		} else {
-			fileName = title + ".csv";
-			bytes = csvBytes;
-			contentType = ContentTypes.APPLICATION_TEXT;
-		}
-*/
 		
 		PortletResponseUtil.sendFile(
 			resourceRequest, resourceResponse, fileName, bytes, contentType);

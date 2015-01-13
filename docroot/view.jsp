@@ -6,6 +6,8 @@ String description = LocalizationUtil.getPreferencesValue(portletPreferences, "d
 boolean requireCaptcha = GetterUtil.getBoolean(portletPreferences.getValue("requireCaptcha", StringPool.BLANK));
 String successURL = portletPreferences.getValue("successURL", StringPool.BLANK);
 boolean saveToDatabase = GetterUtil.getBoolean(portletPreferences.getValue("saveToDatabase", StringPool.BLANK));
+boolean uploadToDM = GetterUtil.getBoolean(portletPreferences.getValue("uploadToDM", StringPool.BLANK));
+boolean uploadToDisk = GetterUtil.getBoolean(portletPreferences.getValue("uploadToDisk", StringPool.BLANK));
 boolean showPreviousPosts = GetterUtil.getBoolean(portletPreferences.getValue("showPreviousPosts", StringPool.BLANK));
 String databaseTableName = portletPreferences.getValue("databaseTableName", StringPool.BLANK);
 %>
@@ -290,6 +292,7 @@ if (saveToDatabase && themeDisplay.isSignedIn() && showPreviousPosts) {
 		int i = 1;
 	
 		String fieldLabel = LocalizationUtil.getPreferencesValue(portletPreferences, "fieldLabel" + i, themeDisplay.getLanguageId());
+		String fieldType = portletPreferences.getValue("fieldType" + i, "text");
 	
 		while ((i == 1) || Validator.isNotNull(fieldLabel)) {
 			columnNames.add(fieldLabel);
@@ -300,12 +303,15 @@ if (saveToDatabase && themeDisplay.isSignedIn() && showPreviousPosts) {
 <%
 			fieldLabel = portletPreferences.getValue("fieldLabel" + i, "");
 		}
+		columnNames.add("email-sent-on");
 %>
+		<th><liferay-ui:message key="date" /></th>
 		</tr>
 		</thead>
 		<tbody class="table-data">
 <%
 		String valore ="";
+		String tipo = "";
 		for(ExpandoValue expandoValue:expandoValues) {
 	 
 	    	long formId = expandoValue.getClassPK();
@@ -316,8 +322,21 @@ if (saveToDatabase && themeDisplay.isSignedIn() && showPreviousPosts) {
 	
 <%
 			for(String columnName:columnNames) {
-				valore = MapUtil.getString(dati, columnName);
-%>
+				tipo = WebFormUtil.getFieldType(columnName, portletPreferences);
+				if (tipo.equals("file")) {
+					valore = MapUtil.getString(dati, columnName);
+					JSONObject jsonObject = JSONFactoryUtil.createJSONObject(valore);
+					if (uploadToDM) {
+						valore = jsonObject.getString("feOriginalName", "");
+					} else if(uploadToDisk) {
+						valore = jsonObject.getString("fsOriginalName", "");
+					} else {
+						valore = jsonObject.getString("Status", "No Attachment");
+					}
+				} else {
+					valore = MapUtil.getString(dati, columnName);
+				}
+%>				
 				<td  class="table-cell"><%= valore%></td>
 <%
 			} // for(String

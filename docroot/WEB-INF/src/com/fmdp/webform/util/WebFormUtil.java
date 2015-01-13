@@ -18,10 +18,14 @@ import com.liferay.counter.service.CounterLocalServiceUtil;
 import com.liferay.mail.service.MailServiceUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
+import com.liferay.portal.kernel.json.JSONException;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
+import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.mail.MailMessage;
 import com.liferay.portal.kernel.util.CharPool;
+import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HtmlUtil;
 import com.liferay.portal.kernel.util.StringBundler;
 import com.liferay.portal.kernel.util.StringPool;
@@ -110,6 +114,9 @@ public class WebFormUtil {
 			}
 			ExpandoColumnLocalServiceUtil.addColumn(
 					expandoTable.getTableId(), "email-from",
+					ExpandoColumnConstants.STRING);
+			ExpandoColumnLocalServiceUtil.addColumn(
+					expandoTable.getTableId(), "email-sent-on",
 					ExpandoColumnConstants.STRING);
 		}
 
@@ -293,7 +300,7 @@ public class WebFormUtil {
 					getEmailFromName(preferences, companyId));
 				String subject = preferences.getValue("thanks-subject", StringPool.BLANK);
 				String preBody = preferences.getValue("thanks-body", StringPool.BLANK);
-				String body = preBody + CharPool.NEW_LINE + CharPool.NEW_LINE + getMailBody(fieldsMap);
+				String body = preBody + CharPool.NEW_LINE + CharPool.NEW_LINE + getMailBody(fieldsMap, preferences, false);
 				MailMessage mailMessage = new MailMessage(
 					fromAddress, subject, body, false);
 
@@ -332,7 +339,7 @@ public class WebFormUtil {
 					getEmailFromAddress(preferences, companyId),
 					getEmailFromName(preferences, companyId));
 				String subject = preferences.getValue("subject", StringPool.BLANK);
-				String body = getMailBody(fieldsMap);
+				String body = getMailBody(fieldsMap, preferences, true);
 
 				MailMessage mailMessage = new MailMessage(
 						fromAddress, subject, body, false);				
@@ -358,19 +365,64 @@ public class WebFormUtil {
 			}
 		}
 
-	protected static String getMailBody(Map<String, String> fieldsMap) {
-		StringBundler sb = new StringBundler();
+	protected static String getMailBody(Map<String, String> fieldsMap, PortletPreferences preferences, boolean isAdminEmail) {
 
+		boolean uploadToDM = GetterUtil.getBoolean(
+				preferences.getValue("uploadToDM", StringPool.BLANK));
+
+		StringBundler sb = new StringBundler();
+		String fieldType ="";
 		for (String fieldLabel : fieldsMap.keySet()) {
 			String fieldValue = fieldsMap.get(fieldLabel);
+			fieldType = getFieldType(fieldLabel, preferences);
 
 			sb.append(fieldLabel);
 			sb.append(" : ");
-			sb.append(fieldValue);
+			
+			if (fieldType.equals("file")) {
+				JSONObject jsonObject;
+				try {
+					jsonObject = JSONFactoryUtil.createJSONObject(fieldValue);
+					if (uploadToDM) {
+						if (isAdminEmail) {
+							sb.append(jsonObject.getString("feUrl", StringPool.BLANK));
+						} else {
+							sb.append(jsonObject.getString("feOriginalName", StringPool.BLANK));
+						}
+					} else {
+						sb.append(jsonObject.getString("fsOriginalName", StringPool.BLANK));						
+					}
+					sb.append(CharPool.NEW_LINE);
+				} catch (JSONException e) {
+					sb.append("");
+					_log.error("Error creating JSON object from " + fieldValue);
+					e.printStackTrace();
+				}
+			} else {
+				sb.append(fieldValue);	
+			}
 			sb.append(CharPool.NEW_LINE);
 		}
 
 		return sb.toString();
+	}
+	
+	public static String getFieldType(String fieldLabelToCheck, PortletPreferences preferences)  {
+		
+		for (int i = 1; true; i++) {
+			String fieldLabel = preferences.getValue(
+				"fieldLabel" + i, StringPool.BLANK);
+
+			String fieldType = preferences.getValue(
+				"fieldType" + i, StringPool.BLANK);
+			
+			if(fieldLabel.equals(fieldLabelToCheck))
+				return fieldType;
+			if (Validator.isNull(fieldLabel)) {
+				break;
+			}
+		}
+		return "";
 	}
 	private static Log _log = LogFactoryUtil.getLog(WebFormUtil.class);
 

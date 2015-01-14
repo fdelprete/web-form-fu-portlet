@@ -10,3 +10,5 @@ The file is upload to disk (you can specify the absolute path location) or to a 
 The file is attached to the email also.
 
 You can configure the portlet to send a "thank you" email to the form's author (only if he's a registered user).
+
+Questa è una aggiunta di prova!
